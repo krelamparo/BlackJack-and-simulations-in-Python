@@ -1,0 +1,236 @@
+
+import random
+
+####################################################################
+# SUPERCLASSES
+####################################################################
+
+class iterables(object):
+    def __init__(self):
+        self.vals = []
+    
+    def __iter__(self):
+        return self.vals.itervalues()
+        
+    def __getitem__(self,i):
+        return self.vals[i]
+    
+    def __str__(self):
+        str1 = ''
+        for i in range(len(self.vals)):
+            str1 += str(self.vals[i])
+        return str1
+
+class Game(object):  
+    def __init__(self, Deck, Players):
+        self.Deck = Deck
+        self.Players = []
+        self.Score = []
+    
+    def addPlayers(self, Player):
+        self.Players.append(Player)
+        self.Score.append(None)
+        
+class Person(object):
+    def __init__(self, name):
+        self.name = name
+        
+    def getPerson(self):
+        return self.name
+        
+    def __str__(self):
+        return self.name
+        
+
+####################################################################
+# CLASSES
+####################################################################
+
+class Card(object):
+    def __init__(self, suite, number):
+        self.suite = suite
+        self.number = number
+        self.name = suite, number
+        self.deck = None
+        
+    def getCard(self):
+        return self.name
+    
+    def __str__(self):
+        return str(self.number) + ' of ' + str(self.suite)
+        
+    def __lt__(self, other):
+        if self.number == other.number:
+            return suiteToValue(self.suite) < suiteToValue(other.suite)
+        else:
+            return numberToValue(self.number) < numberToValue(other.number)
+
+class Deck(iterables):           
+    def __init__(self):
+        self.vals = []
+        self.givenCards = []
+        
+    def fillDeck(self):
+        suites = ['Diamonds', 'Hearts', 'Spades', 'Clubs']
+        values = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10,
+                  'Jack':11,'Queen':12,'King':13}
+        
+        if not self.vals == []:
+            raise ValueError('Deck is already filled')
+        else:
+            for suite in suites:
+                for i in values.keys():
+                    self.vals.append(Card(suite,i).getCard())
+                
+    def shuffleDeck(self): 
+        random.shuffle(self.vals)
+        
+    def discardCard(self, index = 0):
+        self.givenCards.append(self.vals[index])
+        self.vals.pop(index)
+                
+    def getDeck(self, index = "all"):
+        if index != "all":
+            return self.vals[index]
+        else:
+            return self.vals
+    
+    def __str__(self):
+        str1 = ''
+        for i in range(len(self.vals)):
+            str1 += str(self.vals[i])
+        return str1
+
+class Hand(iterables):
+    def __init__(self, player):
+        self.player = player
+        self.vals = []
+        
+    def addCard(self, card):
+        self.vals.append(card)
+    
+    def getHand(self):
+        return self.vals
+    
+class Player(Person):
+    def __init__(self, name):
+        self.name = name
+        self.hand = Hand(self)
+        
+    def handCard(self, card):
+        self.hand.addCard(card)
+    
+    def getHand(self):
+        return self.hand.getHand()
+    
+    def __str__(self):
+        return self.name + ' has ' + str(self.hand)
+
+class Dealer(Person):
+    def __init__(self, name):
+        self.name =  name
+        self.deck = None
+    
+    def startDeck(self, deck):
+        if not self.deck == None:
+            raise ValueError('Dealer already has a deck')
+        else:
+            self.deck = deck
+        
+    def dealCard(self, deck, player):
+        player.handCard(deck[0])
+        deck.discardCard()
+            
+    def getDeck(self, deck):
+        return deck.getDeck()
+
+
+####################################################################
+# HELPERS
+####################################################################
+    
+def suiteToValue(suite = None):
+    if suite == 'Diamonds':
+        return 4
+    elif suite  == 'Hearts':
+        return 3
+    elif suite == 'Spades':
+        return 2
+    elif suite == 'Clubs':
+        return 1
+    raise ValueError('Bad Suite Chosen')
+
+def numberToValue(number = None, highestnumber = 'King'):
+    suite = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10,
+             'Jack':11,'Queen':12,'King':13}
+    suite1 = {2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 10:9,
+             'Jack':10,'Queen':11,'King':12, 1:13}
+    if highestnumber != 'King':
+        return suite1[number]
+    return suite[number]
+    
+def blackJackComp(number = None):
+    if number in ['King','Queen','Jack']:
+        return 10
+    else:
+        return number
+    
+def sumHand(hand):
+    sum1, numberAces = 0, 0
+    for card in hand:
+        sum1 += blackJackComp(card[1])
+        if blackJackComp(card[1]) == 1:
+            numberAces += 1
+    if numberAces == 3:
+        return 21
+    elif numberAces == 1 and sum1 + 9 < 21:
+        return sum1 + 9
+    elif numberAces == 2 and sum1 + 18 < 21:
+        return sum1 + 18
+    else:
+        return sum1
+        
+####################################################################
+# MAIN
+####################################################################
+ 
+def main():
+    # Initialize the persons
+    random.seed()
+    player1 = Player('Jack the Ridgeback')
+    player2 = Player('Tapsi the Runt')
+    dealer = Dealer('Mara Luna')
+    
+    # Initialize the decks
+    d1 = Deck()
+    d1.fillDeck()
+    d1.shuffleDeck()
+    dealer.startDeck(d1)
+    
+    # Dealer deals the cards
+    dealt = 2
+    
+    for i in range(dealt):
+        dealer.dealCard(d1,player1)
+        
+    for i in range(dealt + 1):
+        dealer.dealCard(d1,player2)
+    
+    return sumHand(player1.getHand()), sumHand(player2.getHand())
+
+####################################################################
+# SIMULATIONS
+####################################################################
+ 
+test1ar, test2ar = [], []
+numberTests = 1000
+
+for i in range(numberTests):
+    results = main()
+    if results[0] < 21:
+        test1ar.append(results[0])
+    if results[1] < 21:
+        test2ar.append(results[1])
+        
+print float(sum(test1ar)/len(test1ar))
+print float(sum(test2ar)/len(test2ar))
